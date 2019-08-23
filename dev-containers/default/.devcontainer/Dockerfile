@@ -7,11 +7,11 @@ EXPOSE 8080
 
 # EDIT THIS
 # username and password
-ARG USER_NAME="Austin"
+ARG USER="Austin"
 ARG USER_PASSWORD="devenv"
 
 # set up env variables for user
-ENV USER_NAME $USER_NAME
+ENV USER $USER
 ENV USER_PASSWORD $USER_PASSWORD
 
 # container version
@@ -34,11 +34,9 @@ RUN apt-get update && \
   gnupg gnupg-agent \
   lsb-release \
   locales \
-  nodejs \
   zsh \
   wget \
   nano \
-  npm \
   yum \
   dos2unix \
   iproute2 \
@@ -72,16 +70,16 @@ RUN apt-get update && \
   && /bin/zsh -c "pip3 uninstall -y -r <(pip3 freeze)" \
   #
   # set up user and password
-  && groupadd --gid $USER_GID $USER_NAME \
-  && useradd -s /bin/bash --uid $USER_UID --gid $USER_GID -m $USER_NAME \
+  && groupadd --gid $USER_GID $USER \
+  && useradd -s /bin/bash --uid $USER_UID --gid $USER_GID -m $USER \
   #
   # Passwordless sudo
-  && echo $USER_NAME ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/$USER_NAME\
-  && chmod 0440 /etc/sudoers.d/$USER_NAME \
+  && echo $USER ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/$USER\
+  && chmod 0440 /etc/sudoers.d/$USER \
   #
   # create docker group and add user to it
   && sudo groupadd docker \
-  && sudo usermod -aG docker $USER_NAME \
+  && sudo usermod -aG docker $USER \
   #
   # clean up
   && apt-get autoremove \
@@ -98,14 +96,17 @@ RUN echo $TZ > /etc/timezone && \
   apt-get clean
 
 # user stuff
-USER $USER_NAME
-WORKDIR /home/$USER_NAME
+USER $USER
+WORKDIR /home/$USER
 
 # make envs and working directories
 RUN mkdir ~/.envs \
-  && mkdir ~/working \
-  && mkdir ~/.aws && cd ~/.aws \
-  && touch credentials config
+  && mkdir ~/working
+
+# install nvm
+RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.34.0/install.sh | bash \
+  && sudo chown -R $USER:$(id -gn $USER) /home/Austin/.config \
+  && source ~/.bashrc && nvm install node && nvm use node
 
 # install oh-my-zsh and powerlevel9k, aws stuff, virtualenvwrapper, thefuck
 RUN wget https://github.com/robbyrussell/oh-my-zsh/raw/master/tools/install.sh -O - | zsh || true \
@@ -113,7 +114,7 @@ RUN wget https://github.com/robbyrussell/oh-my-zsh/raw/master/tools/install.sh -
   && /bin/zsh -c "pip3 install aws-sam-cli awscli virtualenvwrapper thefuck"
 
 # EDIT HERE, load our zshrc (from windows)
-COPY --chown=Austin:Austin .devcontainer/.zshrc .zshrc* /home/$USER_NAME/
+COPY --chown=Austin:Austin .devcontainer/.zshrc .zshrc* /home/$USER/
 
 # upload .zshrc file, install autosuggestions
 RUN /bin/zsh -c "git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions \
